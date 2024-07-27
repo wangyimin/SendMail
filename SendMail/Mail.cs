@@ -19,7 +19,7 @@ namespace SendMail
         private static readonly String[] CORRECT_COMMANDS = new String[] {
             "EHLO", "STARTTLS", "AuthPlain", "MailFrom", "RcptTo", "DATA", "QUIT" };
    
-        private readonly string from = "zzz@mail.com";
+        private readonly string from = ConfigurationManager.AppSettings["FROM"];
         private readonly string to;
         private readonly string subject;
         private readonly string body;
