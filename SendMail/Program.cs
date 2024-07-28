@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace SendMail
 {
@@ -8,8 +6,16 @@ namespace SendMail
     {
         static void Main(string[] args)
         {
-            Mail m = new Mail("王<xxx@yyy.com>", "あいうえお", "あいうえお");
+            Mail m = new Mail
+            {
+                to = "王<xxx@yyy.com>",
+                subject = "あいうえお",
+                body = "あいうえお",
+                attachment = @"d:\Wang\テスト.XLSX"
+            };
+
             m.Send(new String[] { "EHLO", "STARTTLS", "AuthPlain", "MailFrom", "RcptTo", "DATA", "QUIT" });
+            
         }
     }
 }

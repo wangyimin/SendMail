@@ -10,6 +10,7 @@ namespace SendMail
 {
     class Mail
     {
+        private static readonly string MULTIPLE_PARTS = "_MIME-Boundary";
         private static readonly string SERVER = ConfigurationManager.AppSettings["SERVER"];
         private static readonly int PORT = Int32.Parse(ConfigurationManager.AppSettings["PORT"]);
         private static readonly string USER  = ConfigurationManager.AppSettings["USER"];
@@ -19,17 +20,12 @@ namespace SendMail
         private static readonly String[] CORRECT_COMMANDS = new String[] {
             "EHLO", "STARTTLS", "AuthPlain", "MailFrom", "RcptTo", "DATA", "QUIT" };
    
-        private readonly string from = ConfigurationManager.AppSettings["FROM"];
-        private readonly string to;
-        private readonly string subject;
-        private readonly string body;
+        private static readonly string from = ConfigurationManager.AppSettings["FROM"];
+        public string to;
+        public string subject;
+        public string body;
+        public string attachment;
 
-        public Mail(String to, String subject, String body)
-        {
-            this.to = to;
-            this.subject = subject;
-            this.body = body;
-        }
 
         public void Send(IEnumerable<String> commands)
         {
@@ -51,10 +47,9 @@ namespace SendMail
                         if (Array.IndexOf(CORRECT_COMMANDS, command) == -1)
                             throw new ArgumentException("Invalid command![" + command + "]");
 
-                        String method = "Send" + command;
                         MethodInfo m = this.GetType()
                             .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
-                            .Single(el => el.Name == method && el.IsGenericMethodDefinition)
+                            .Single(el => el.Name == "Send" + command && el.IsGenericMethodDefinition)
                             .MakeGenericMethod(stream.GetType());
                         m.Invoke(this, new Object[] { stream });
 
@@ -72,8 +67,9 @@ namespace SendMail
                 }
                 finally
                 {
-                    netStream?.Close();
                     sslStream?.Close();
+                    netStream?.Close();
+                    client?.Close();
                 }
             }
         }
@@ -97,6 +93,10 @@ namespace SendMail
             where T : Stream
         {
             String data = "";
+
+            // Header:MIME-Version
+            data += "MIME-Version: 1.0\r\n";
+
             // Header:From
             data += "From: " + GetEncode64(new System.Net.Mail.MailAddress(from).DisplayName) + 
                 "<" + new System.Net.Mail.MailAddress(from).Address + ">\r\n";
@@ -108,19 +108,15 @@ namespace SendMail
             // Header:Subject
             data += "Subject: " + GetEncode64(subject) + "\r\n";
 
-            // Header:MIME-Version
-            data += "MIME-Version: 1.0\r\n";
-
-            // Header:Content-Type
-            data += "Content-Type: text/plain; charset=\"" + ENC.BodyName + "\"\r\n";
-
-            // Header:Content-Transfer-Encoding
-            data += "Content-Transfer-Encoding: 7bit\r\n";
-
-            data += "\r\n";
-
+            data += "content-type: multipart/mixed; boundary=\"" + MULTIPLE_PARTS + "\"\r\n\r\n";
             // Body
+            data += "--" + MULTIPLE_PARTS + "\r\n";
+            data += "Content-Type: text/plain; charset=\"" + ENC.BodyName + "\"\r\n";
+            data += "Content-Transfer-Encoding: 7bit\r\n\r\n";
             data += body + "\r\n";
+
+            // Attachment
+            data += CreateAttachemtnData();
 
             // .->..(RFC2821:period is first character of the line)
             data = data.Replace("\r\n.\r\n", "\r\n..\r\n");
@@ -158,6 +154,18 @@ namespace SendMail
             if (s == "") return "";
             return isPassphrase ? Convert.ToBase64String(ENC.GetBytes(s)) :
                 "=?" + ENC.BodyName + "?B?" + Convert.ToBase64String(ENC.GetBytes(s)) + "?=";
+        }
+
+        private String CreateAttachemtnData()
+        {
+            if (String.IsNullOrEmpty(attachment)) return "";
+
+            String r = "";
+            r += "--" + MULTIPLE_PARTS + "\r\n";
+            r += "content-type: application/octet-stream; name=" + GetEncode64(Path.GetFileName(attachment)) + "\r\n";
+            r += "content-transfer-encoding: base64\r\n\r\n";
+            r += Convert.ToBase64String(File.ReadAllBytes(attachment)) + "\r\n";
+            return r;
         }
     }
 }
