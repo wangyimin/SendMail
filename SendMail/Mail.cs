@@ -62,7 +62,7 @@ namespace SendMail
                 }
                 catch(Exception ex)
                 {
-                    Console.WriteLine(ex.Message + "\r\n" + ex.StackTrace);
+                    Console.WriteLine(ex.Message + Environment.NewLine + ex.StackTrace);
                     throw ex;
                 }
                 finally
@@ -74,20 +74,20 @@ namespace SendMail
             }
         }
 
-        private void SendEHLO<T>(T stream) where T : Stream => StreamWriteAndRead(stream, "EHLO localhost\r\n", "2");
-        private void SendSTARTTLS<T>(T stream) where T : Stream => StreamWriteAndRead(stream, "STARTTLS\r\n", "2");
+        private void SendEHLO<T>(T stream) where T : Stream => StreamWriteAndRead(stream, "EHLO localhost" + Environment.NewLine, "2");
+        private void SendSTARTTLS<T>(T stream) where T : Stream => StreamWriteAndRead(stream, "STARTTLS" + Environment.NewLine, "2");
         private void SendAuthPlain<T>(T stream) where T : Stream =>
-            StreamWriteAndRead(stream, "AUTH PLAIN " + GetEncode64("\0" + USER + "\0" + PASSWORD, true) + "\r\n", "2");
+            StreamWriteAndRead(stream, "AUTH PLAIN " + GetEncode64("\0" + USER + "\0" + PASSWORD, true) + Environment.NewLine, "2");
         private void SendMailFrom<T>(T stream) where T : Stream =>
-            StreamWriteAndRead(stream, "MAIL FROM:<" + new System.Net.Mail.MailAddress(from).Address + ">\r\n", "2");
+            StreamWriteAndRead(stream, "MAIL FROM:<" + new System.Net.Mail.MailAddress(from).Address + ">" + Environment.NewLine, "2");
         private void SendRcptTo<T>(T stream) where T : Stream => 
-            StreamWriteAndRead(stream, "RCPT TO:<" + new System.Net.Mail.MailAddress(to).Address + ">\r\n", "2");
+            StreamWriteAndRead(stream, "RCPT TO:<" + new System.Net.Mail.MailAddress(to).Address + ">" + Environment.NewLine, "2");
         private void SendDATA<T>(T stream) where T : Stream
         {
-            StreamWriteAndRead(stream, "DATA\r\n", "3");
+            StreamWriteAndRead(stream, "DATA" + Environment.NewLine, "3");
             SendDataContent(stream);
         }
-        private void SendQUIT<T>(T stream) where T : Stream => StreamWriteAndRead(stream, "QUIT\r\n", "2");
+        private void SendQUIT<T>(T stream) where T : Stream => StreamWriteAndRead(stream, "QUIT" + Environment.NewLine, "2");
 
         private void SendDataContent<T>(T stream) 
             where T : Stream
@@ -95,34 +95,34 @@ namespace SendMail
             String data = "";
 
             // Header:MIME-Version
-            data += "MIME-Version: 1.0\r\n";
+            data += "MIME-Version: 1.0" + Environment.NewLine;
 
             // Header:From
             data += "From: " + GetEncode64(new System.Net.Mail.MailAddress(from).DisplayName) + 
-                "<" + new System.Net.Mail.MailAddress(from).Address + ">\r\n";
+                "<" + new System.Net.Mail.MailAddress(from).Address + ">" + Environment.NewLine;
 
             // Header:To
             data += "To: " + GetEncode64(new System.Net.Mail.MailAddress(to).DisplayName) + 
-                "<" + new System.Net.Mail.MailAddress(to).Address + ">\r\n";
+                "<" + new System.Net.Mail.MailAddress(to).Address + ">" + Environment.NewLine;
 
             // Header:Subject
-            data += "Subject: " + GetEncode64(subject) + "\r\n";
+            data += "Subject: " + GetEncode64(subject) + Environment.NewLine;
 
-            data += "content-type: multipart/mixed; boundary=\"" + MULTIPLE_PARTS + "\"\r\n\r\n";
+            data += "content-type: multipart/mixed; boundary=\"" + MULTIPLE_PARTS + "\"" + Environment.NewLine + Environment.NewLine;
             // Body
-            data += "--" + MULTIPLE_PARTS + "\r\n";
-            data += "Content-Type: text/plain; charset=\"" + ENC.BodyName + "\"\r\n";
-            data += "Content-Transfer-Encoding: 7bit\r\n\r\n";
-            data += body + "\r\n";
+            data += "--" + MULTIPLE_PARTS + Environment.NewLine;
+            data += "Content-Type: text/plain; charset=\"" + ENC.BodyName + "\"" + Environment.NewLine;
+            data += "Content-Transfer-Encoding: 7bit" + Environment.NewLine + Environment.NewLine;
+            data += body + Environment.NewLine;
 
             // Attachment
             data += CreateAttachemtnData();
 
             // .->..(RFC2821:period is first character of the line)
-            data = data.Replace("\r\n.\r\n", "\r\n..\r\n");
+            data = data.Replace(Environment.NewLine + "." + Environment.NewLine, Environment.NewLine + ".." + Environment.NewLine);
 
             // Completed
-            data += "\r\n.\r\n";
+            data += Environment.NewLine + "." + Environment.NewLine;
             StreamWriteAndRead(stream, data, "2");
         }
 
@@ -161,10 +161,10 @@ namespace SendMail
             if (String.IsNullOrEmpty(attachment)) return "";
 
             String r = "";
-            r += "--" + MULTIPLE_PARTS + "\r\n";
-            r += "content-type: application/octet-stream; name=" + GetEncode64(Path.GetFileName(attachment)) + "\r\n";
-            r += "content-transfer-encoding: base64\r\n\r\n";
-            r += Convert.ToBase64String(File.ReadAllBytes(attachment)) + "\r\n";
+            r += "--" + MULTIPLE_PARTS + Environment.NewLine;
+            r += "content-type: application/octet-stream; name=" + GetEncode64(Path.GetFileName(attachment)) + Environment.NewLine;
+            r += "content-transfer-encoding: base64" + Environment.NewLine + Environment.NewLine;
+            r += Convert.ToBase64String(File.ReadAllBytes(attachment)) + Environment.NewLine;
             return r;
         }
     }
