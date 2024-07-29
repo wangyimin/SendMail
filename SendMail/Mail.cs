@@ -22,6 +22,8 @@ namespace SendMail
             "EHLO", "STARTTLS", "AuthPlain", "MailFrom", "RcptTo", "DATA", "QUIT" };
    
         private static readonly string from = ConfigurationManager.AppSettings["FROM"];
+        private int chunkSize = 100;
+
         public string to;
         public string subject;
         public string body;
@@ -169,7 +171,18 @@ namespace SendMail
             r += "--" + MULTIPLE_PARTS + Environment.NewLine;
             r += "content-type: application/octet-stream; name=" + GetEncode64(Path.GetFileName(attachment)) + Environment.NewLine;
             r += "content-transfer-encoding: base64" + Environment.NewLine + Environment.NewLine;
-            r += Convert.ToBase64String(File.ReadAllBytes(attachment)) + Environment.NewLine;
+            r += Chunk(Convert.ToBase64String(File.ReadAllBytes(attachment)));
+            return r;
+        }
+
+        private String Chunk(String s)
+        {
+            String r = "";
+            for (int i = 0; i < s.Length; i += chunkSize)
+            {
+                if (i + chunkSize > s.Length) chunkSize = s.Length - i;
+                r += s.Substring(i, chunkSize) + Environment.NewLine;
+            }
             return r;
         }
     }
