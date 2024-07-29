@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Configuration;
 
 namespace SendMail
 {
@@ -57,6 +58,10 @@ namespace SendMail
                         {
                             stream = sslStream = new System.Net.Security.SslStream(netStream);
                             sslStream.AuthenticateAsClient(SERVER);
+#if X509
+                            X509Certificate2 X509 = new X509Certificate2(sslStream.RemoteCertificate);
+                            Console.WriteLine(X509.ToString(true));
+#endif
                         }
                     }
                 }
