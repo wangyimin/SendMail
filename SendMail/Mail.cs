@@ -69,8 +69,10 @@ namespace SendMail
                 }
                 catch(Exception ex)
                 {
-                    Console.WriteLine(ex.Message + Environment.NewLine + ex.StackTrace);
-                    throw ex;
+                    Exception excp =  ex is TargetInvocationException ?
+                        ex.InnerException : ex;
+                    
+                    Console.WriteLine(excp.Message + Environment.NewLine + excp.StackTrace);
                 }
                 finally
                 {
