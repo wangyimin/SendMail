@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -19,7 +20,7 @@ namespace SendMail
 
         private static readonly  Encoding ENC = System.Text.Encoding.GetEncoding("ISO-2022-JP");
         private static readonly String[] CORRECT_COMMANDS = new String[] {
-            "EHLO", "STARTTLS", "AuthPlain", "MailFrom", "RcptTo", "DATA", "QUIT" };
+            "EHLO", "STARTTLS", "AuthPlain", "AuthNtlm", "MailFrom", "RcptTo", "DATA", "QUIT" };
    
         private static readonly string from = ConfigurationManager.AppSettings["FROM"];
         private int chunkSize = 100;
@@ -97,6 +98,15 @@ namespace SendMail
             SendDataContent(stream);
         }
         private void SendQUIT<T>(T stream) where T : Stream => StreamWriteAndRead(stream, "QUIT" + Environment.NewLine, "2");
+
+        private void SendAuthNtlm<T>(T stream) where T : Stream
+        {
+            Ntlm ntlm = new Ntlm(new NetworkCredential(ConfigurationManager.AppSettings["NTLMUSER"],
+                    ConfigurationManager.AppSettings["NTLMPASS"], ConfigurationManager.AppSettings["NTLMDOMAIN"]));
+
+            String challenge = StreamWriteAndRead(stream, "AUTH NTLM " + ntlm.CreateType1Message() + Environment.NewLine, "3");
+            StreamWriteAndRead(stream, ntlm.CreateType3Message(challenge.Split(' ')?.Last()) + Environment.NewLine, "2");
+        }
 
         private void SendDataContent<T>(T stream) 
             where T : Stream

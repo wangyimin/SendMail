@@ -8,6 +8,7 @@ using System.Configuration;
 
 namespace SendMail
 {
+    //https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-ntht/4da12358-7cee-4104-b0da-0822d5768798
     class HttpNtlm
     {
         private static System.Net.NetworkCredential nc;
@@ -20,14 +21,18 @@ namespace SendMail
             client.DefaultRequestHeaders.Add("Accept", "*/*");
 
             var ntlm = new Ntlm(nc);
-            string msg = ntlm.CreateNegotiateMessage(spnego: !useNtlm);
+
             //WANG
-#if LOG
-            Console.WriteLine("Type1:" + msg);
-#endif 
+            //string msg = ntlm.CreateNegotiateMessage(spnego: !useNtlm);
+            string type1msg = ntlm.CreateNegotiateMessage(spnego: !useNtlm);
+#if TYPEMSGLOG
+            Console.WriteLine("Type1:" + type1msg);
+#endif
             var message = new HttpRequestMessage(HttpMethod.Get, uri);
-            message.Headers.Add("Authorization", ntlm.CreateNegotiateMessage(spnego: !useNtlm));
             //WANG
+            //message.Headers.Add("Authorization", ntlm.CreateNegotiateMessage(spnego: !useNtlm));
+            message.Headers.Add("Authorization", type1msg);
+
             //HttpResponseMessage response = await client.SendAsync(message, default);
             HttpResponseMessage response = await client.SendAsync(message);
             if (response.StatusCode == HttpStatusCode.Unauthorized)
@@ -35,7 +40,7 @@ namespace SendMail
                 foreach (AuthenticationHeaderValue header in response.Headers.WwwAuthenticate)
                 {
                     string blob = ntlm.ProcessChallenge(header);
-#if LOG
+#if TYPEMSGLOG
                     //WANG
                     Console.WriteLine("Type3:" + blob);
 #endif

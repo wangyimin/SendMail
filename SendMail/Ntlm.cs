@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Security.Cryptography;
 using System.Formats.Asn1;
-using SendMail;
+using Cifs.Util;
 
 namespace System.Net
 {
@@ -747,5 +747,16 @@ namespace System.Net
 
             return responseBytes;
         }
+
+        //WANG
+        public unsafe string CreateType1Message()
+        {
+            Span<byte> asBytes = new byte[sizeof(NegotiateMessage)];
+            CreateNegotiateMessageRaw(asBytes);
+
+            return Convert.ToBase64String(asBytes.ToArray(), Base64FormattingOptions.None);
+        }
+
+        public unsafe string CreateType3Message(string challenge) => ProcessNtlmChallenge(challenge);
     }
 }

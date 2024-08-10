@@ -28,7 +28,7 @@
 
 using System.Text;
 
-namespace SendMail
+namespace Cifs.Util
 {
     using System;
 
