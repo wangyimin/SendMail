@@ -20,7 +20,7 @@ namespace SendMail
 
         private static readonly  Encoding ENC = System.Text.Encoding.GetEncoding("ISO-2022-JP");
         private static readonly String[] CORRECT_COMMANDS = new String[] {
-            "EHLO", "STARTTLS", "AuthPlain", "AuthNtlm", "MailFrom", "RcptTo", "DATA", "QUIT" };
+            "EHLO", "STARTTLS", "AuthPlain", "AuthNtlm", "AuthLogin", "MailFrom", "RcptTo", "DATA", "QUIT" };
    
         private static readonly string from = ConfigurationManager.AppSettings["FROM"];
         private int chunkSize = 100;
@@ -106,6 +106,13 @@ namespace SendMail
 
             String challenge = StreamWriteAndRead(stream, "AUTH NTLM " + ntlm.CreateType1Message() + Environment.NewLine, "3");
             StreamWriteAndRead(stream, ntlm.CreateType3Message(challenge.Split(' ')?.Last()) + Environment.NewLine, "2");
+        }
+
+        private void SendAuthLogin<T>(T stream) where T : Stream
+        {
+            StreamWriteAndRead(stream, "AUTH LOGIN" + Environment.NewLine, "3");
+            StreamWriteAndRead(stream, GetEncode64(USER) + Environment.NewLine, "3");
+            StreamWriteAndRead(stream, GetEncode64(PASSWORD) + Environment.NewLine, "2");
         }
 
         private void SendDataContent<T>(T stream) 
