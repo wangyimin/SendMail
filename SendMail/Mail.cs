@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -20,7 +21,7 @@ namespace SendMail
 
         private static readonly  Encoding ENC = System.Text.Encoding.GetEncoding("ISO-2022-JP");
         private static readonly String[] CORRECT_COMMANDS = new String[] {
-            "EHLO", "STARTTLS", "AuthPlain", "AuthNtlm", "AuthLogin", "MailFrom", "RcptTo", "DATA", "QUIT" };
+            "EHLO", "STARTTLS", "AuthPlain", "AuthNtlm", "AuthLogin", "AuthCramMD5", "MailFrom", "RcptTo", "DATA", "QUIT" };
    
         private static readonly string from = ConfigurationManager.AppSettings["FROM"];
         private int chunkSize = 100;
@@ -111,8 +112,20 @@ namespace SendMail
         private void SendAuthLogin<T>(T stream) where T : Stream
         {
             StreamWriteAndRead(stream, "AUTH LOGIN" + Environment.NewLine, "3");
-            StreamWriteAndRead(stream, GetEncode64(USER) + Environment.NewLine, "3");
-            StreamWriteAndRead(stream, GetEncode64(PASSWORD) + Environment.NewLine, "2");
+            StreamWriteAndRead(stream, GetEncode64(USER, true) + Environment.NewLine, "3");
+            StreamWriteAndRead(stream, GetEncode64(PASSWORD, true) + Environment.NewLine, "2");
+        }
+
+        private void SendAuthCramMD5<T>(T stream) where T : Stream
+        {
+            String challenge = StreamWriteAndRead(stream, "AUTH CRAM-MD5" + Environment.NewLine, "3").Split(' ').Last();
+            byte[] keyed = new HMACMD5(Encoding.ASCII.GetBytes(PASSWORD))
+                .ComputeHash(Convert.FromBase64String(challenge));
+
+            string digest = String.Join("", keyed.Select(el => el.ToString("x02")).ToArray());
+
+            StreamWriteAndRead(stream, 
+                Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0} {1}", USER, digest))), "2");
         }
 
         private void SendDataContent<T>(T stream) 
