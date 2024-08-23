@@ -21,7 +21,7 @@ namespace SendMail
 
         private static readonly  Encoding ENC = System.Text.Encoding.GetEncoding("ISO-2022-JP");
         private static readonly String[] CORRECT_COMMANDS = new String[] {
-            "EHLO", "STARTTLS", "AuthPlain", "AuthNtlm", "AuthLogin", "AuthCramMD5", "MailFrom", "RcptTo", "DATA", "QUIT" };
+            "EHLO", "STARTTLS", "AuthPlain", "AuthNtlm", "AuthXOAuth2", "AuthLogin", "AuthCramMD5", "MailFrom", "RcptTo", "DATA", "QUIT" };
    
         private static readonly string from = ConfigurationManager.AppSettings["FROM"];
         private int chunkSize = 100;
@@ -63,6 +63,9 @@ namespace SendMail
                             stream = sslStream = new System.Net.Security.SslStream(netStream);
                             sslStream.AuthenticateAsClient(SERVER);
 #if X509
+                            Console.WriteLine("TLS version: " + sslStream.SslProtocol);
+                            Console.WriteLine("Cipher: " + sslStream.CipherAlgorithm);
+                            Console.WriteLine("Hash: " + sslStream.HashAlgorithm);
                             X509Certificate2 X509 = new X509Certificate2(sslStream.RemoteCertificate);
                             Console.WriteLine(X509.ToString(true));
 #endif
@@ -109,6 +112,14 @@ namespace SendMail
             StreamWriteAndRead(stream, ntlm.CreateType3Message(challenge.Split(' ')?.Last()) + Environment.NewLine, "2");
         }
 
+        private void SendAuthXOAuth2<T>(T stream) where T : Stream
+        {
+            OAuth2 auth = new OAuth2();
+            String token = GetEncode64("user=" + USER + "\aauth=Bearer " + auth.GetAccessToken().Result + "\a\a", true);
+
+            StreamWriteAndRead(stream, "AUTH XOAUTH2 " + token + Environment.NewLine, "2");
+        }
+
         private void SendAuthLogin<T>(T stream) where T : Stream
         {
             StreamWriteAndRead(stream, "AUTH LOGIN" + Environment.NewLine, "3");
@@ -122,7 +133,7 @@ namespace SendMail
             byte[] keyed = new HMACMD5(Encoding.ASCII.GetBytes(PASSWORD))
                 .ComputeHash(Convert.FromBase64String(challenge));
 
-            string digest = String.Join("", keyed.Select(el => el.ToString("x02")).ToArray());
+            string digest = String.Join("", keyed.Select(el => el.ToString("x2")));
 
             StreamWriteAndRead(stream, 
                 Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0} {1}", USER, digest))), "2");
