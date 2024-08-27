@@ -18,27 +18,33 @@ namespace SendMail
         public static String tagName = "access_token";
 
         public Func<String, String> parser = s =>
-            (JsonSerializer.Deserialize<Dictionary<string, string>>(s))[tagName];
- 
+           JsonDocument.Parse(s)
+                .RootElement
+                .GetProperty(tagName)
+                .GetString();
+
         public async Task<String> GetAccessToken()
         {
             using (HttpClient hc = new HttpClient())
             {
-                HttpRequestMessage hrm = new HttpRequestMessage(HttpMethod.Post, URI);
-                hrm.Headers.Add("client_id", clientId);
-                hrm.Headers.Add("client_secret", clientSecret);
-                hrm.Headers.Add("refresh_token", refreshToken);
-                hrm.Headers.Add("grant_type", "refresh_token");
-
-                HttpResponseMessage resp = await hc.SendAsync(hrm);
-                if (resp.StatusCode == HttpStatusCode.OK)
-                {
-                    String content = await resp.Content.ReadAsStringAsync();
-                    return parser(content);
-                }
-                else
-                {
-                    throw new InvalidOperationException("Unknown error.");
+                using (HttpResponseMessage resp = await hc.PostAsync(URI,
+                    new FormUrlEncodedContent(new Dictionary<string, string>
+                    {
+                        ["grant_type"] = "refresh_token",
+                        ["client_id"] = clientId,
+                        ["client_secret"] = clientSecret,
+                        ["refresh_token"] = refreshToken,
+                    })))
+                { 
+                    if (resp.StatusCode == HttpStatusCode.OK)
+                    {
+                        String content = await resp.Content.ReadAsStringAsync();
+                        return parser(content);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Unknown error.");
+                    }
                 }
             }
         }
