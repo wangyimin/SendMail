@@ -115,8 +115,7 @@ namespace SendMail
         private void SendAuthXOAuth2<T>(T stream) where T : Stream
         {
             OAuth2 auth = new OAuth2();
-            String token = GetEncode64("user=" + USER + "\aauth=Bearer " + auth.GetAccessToken().Result + "\a\a", true);
-
+            String token = GetEncode64("user=" + USER + "\u0001auth=Bearer " + auth.GetAccessToken().Result + "\u0001\u0001", true);
             StreamWriteAndRead(stream, "AUTH XOAUTH2 " + token + Environment.NewLine, "2");
         }
 
