@@ -13,7 +13,8 @@ namespace SendMail
 {
     class Mail
     {
-        private static readonly string MULTIPLE_PARTS = "_MIME-Boundary";
+        private static readonly string MULTIPLE_PARTS = "_MIME-Boundary-" + GetRandomString(10);
+
         private static readonly string SERVER = ConfigurationManager.AppSettings["SERVER"];
         private static readonly int PORT = Int32.Parse(ConfigurationManager.AppSettings["PORT"]);
         private static readonly string USER  = ConfigurationManager.AppSettings["USER"];
@@ -62,6 +63,8 @@ namespace SendMail
                         {
                             stream = sslStream = new System.Net.Security.SslStream(netStream);
                             sslStream.AuthenticateAsClient(SERVER);
+                            SendEHLO(stream);
+
 #if X509
                             Console.WriteLine("TLS version: " + sslStream.SslProtocol);
                             Console.WriteLine("Cipher: " + sslStream.CipherAlgorithm);
@@ -91,7 +94,7 @@ namespace SendMail
         private void SendEHLO<T>(T stream) where T : Stream => StreamWriteAndRead(stream, "EHLO localhost" + Environment.NewLine, "2");
         private void SendSTARTTLS<T>(T stream) where T : Stream => StreamWriteAndRead(stream, "STARTTLS" + Environment.NewLine, "2");
         private void SendAuthPlain<T>(T stream) where T : Stream =>
-            StreamWriteAndRead(stream, "AUTH PLAIN " + GetEncode64("\0" + USER + "\0" + PASSWORD, true) + Environment.NewLine, "2");
+            StreamWriteAndRead(stream, "AUTH PLAIN " + GetEncode64(USER + "\0" + USER + "\0" + PASSWORD, true) + Environment.NewLine, "2");
         private void SendMailFrom<T>(T stream) where T : Stream =>
             StreamWriteAndRead(stream, "MAIL FROM:<" + new System.Net.Mail.MailAddress(from).Address + ">" + Environment.NewLine, "2");
         private void SendRcptTo<T>(T stream) where T : Stream => 
@@ -226,6 +229,17 @@ namespace SendMail
                 r += s.Substring(i, chunkSize) + Environment.NewLine;
             }
             return r;
+        }
+
+        private static String GetRandomString(int length)
+        {
+            const string seed = "abcdefghijklmnopqrstuvwyxzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            Random rand = new Random();
+
+            return new string(Enumerable.Range(0, length).Aggregate(new char[length],
+                                (arr, i) => {
+                                    arr[i] = seed[rand.Next(seed.Length)]; return arr;
+                                }));
         }
     }
 }
